@@ -29,21 +29,34 @@ station_init(struct station *station)
 void
 station_load_bus(struct station *station, int count)
 {
+    void
+station_load_bus(struct station *station, int count)
+{
     pthread_mutex_lock(&station->mutex);
     station->free_seats = count;
     station->boarded_students = 0;
 
-    while (station->free_seats > 0 && station->waiting_students > 0) {
+    int total_boarded_students = 0;
+
+    while (station->waiting_students > 0 && station->free_seats > 0) {
         pthread_cond_signal(&station->bus_arrived);
-        // Add an additional check to ensure no more students left to board
-        if (station->waiting_students > 0) {
-            pthread_cond_wait(&station->student_boarded, &station->mutex);
+        pthread_cond_wait(&station->student_boarded, &station->mutex);
+
+        total_boarded_students += station->boarded_students;
+        station->free_seats -= station->boarded_students;
+        station->waiting_students -= station->boarded_students;
+        station->boarded_students = 0;
+
+        if (total_boarded_students >= count || station->waiting_students == 0) {
+            break;
         }
     }
 
     station->free_seats = 0;
     pthread_cond_broadcast(&station->all_boarded);
     pthread_mutex_unlock(&station->mutex);
+}
+
 }
 
 
