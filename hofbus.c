@@ -4,6 +4,7 @@ struct station {
     pthread_mutex_t mutex;
     pthread_cond_t bus_arrived;
     pthread_cond_t student_boarded;
+    pthread_cond_t all_boarded;
     int waiting_students;
     int free_seats;
     int boarded_students;
@@ -17,6 +18,7 @@ station_init(struct station *station)
     pthread_mutex_init(&station->mutex, NULL);
     pthread_cond_init(&station->bus_arrived, NULL);
     pthread_cond_init(&station->student_boarded, NULL);
+    pthread_cond_init(&station->all_boarded, NULL);
     station->waiting_students = 0;
     station->free_seats = 0;
     station->boarded_students = 0;
@@ -31,7 +33,7 @@ station_load_bus(struct station *station, int count)
     station->free_seats = count;
     station->boarded_students = 0;
 
-    if (station->waiting_students > 0) {
+    if (station->waiting_students > 0 && count > 0) {
         pthread_cond_broadcast(&station->bus_arrived);
     }
 
@@ -39,15 +41,13 @@ station_load_bus(struct station *station, int count)
         pthread_cond_wait(&station->student_boarded, &station->mutex);
     }
 
-    // Wait for all boarded students to signal that they have boarded
-    while (station->boarded_students > 0) {
-        pthread_cond_wait(&station->student_boarded, &station->mutex);
+    if (station->boarded_students > 0) {
+        pthread_cond_wait(&station->all_boarded, &station->mutex);
     }
 
     station->free_seats = 0;
     pthread_mutex_unlock(&station->mutex);
 }
-
 
 int
 station_wait_for_bus(struct station *station, int myticket, int myid)
@@ -64,16 +64,13 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
     station->free_seats--;
     station->boarded_students++;
 
-    pthread_cond_signal(&station->student_boarded); // Signal the bus that the student has boarded
+    pthread_cond_signal(&station->student_boarded);
 
-    // If the bus is full or there are no more waiting students, signal the bus to depart
-    if (station->free_seats == 0 || station->waiting_students == 0) {
-        station->boarded_students = 0;
-        pthread_cond_signal(&station->student_boarded);
+    if (station->boarded_students == station->boarding_turn) {
+        pthread_cond_signal(&station->all_boarded);
     }
 
     pthread_mutex_unlock(&station->mutex);
 
     return station->boarding_turn;
 }
-
