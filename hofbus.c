@@ -45,6 +45,7 @@ station_load_bus(struct station *station, int count)
     while(station->boarded_students< station->free_seats && station->waiting_students>0){
         pthread_cond_wait(&station->student_boarded, &station->mutex);
     }
+    station->free_seats -= station->boarded_students;
     station->boarded_students=0;
 
     if (station->boarded_students > 0) {
@@ -71,12 +72,8 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
     station->boarded_students++;
 
     pthread_cond_signal(&station->student_boarded);
-
-    if (station->boarded_students == station->boarding_turn) {
-        pthread_cond_signal(&station->all_boarded);
-    }
-
     pthread_mutex_unlock(&station->mutex);
 
     return station->boarding_turn;
 }
+
