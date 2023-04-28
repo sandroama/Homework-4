@@ -25,7 +25,7 @@ station_init(struct station *station)
     station->ticket_counter = 0;
     station->boarding_turn = 0;
 }
-    void
+void
 station_load_bus(struct station *station, int count)
 {
     pthread_mutex_lock(&station->mutex);
@@ -39,8 +39,6 @@ station_load_bus(struct station *station, int count)
         pthread_cond_wait(&station->student_boarded, &station->mutex);
 
         total_boarded_students += station->boarded_students;
-        station->free_seats -= station->boarded_students;
-        station->waiting_students -= station->boarded_students;
         station->boarded_students = 0;
 
         if (total_boarded_students >= count || station->waiting_students == 0) {
@@ -48,10 +46,14 @@ station_load_bus(struct station *station, int count)
         }
     }
 
+    station->free_seats -= total_boarded_students;
+    station->waiting_students -= total_boarded_students;
+
     station->free_seats = 0;
     pthread_cond_broadcast(&station->all_boarded);
     pthread_mutex_unlock(&station->mutex);
 }
+
 
 
 
