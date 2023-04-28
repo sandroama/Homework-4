@@ -4,8 +4,10 @@ struct station {
     pthread_mutex_t mutex;
     pthread_cond_t bus_arrived;
     pthread_cond_t student_boarded;
+    pthread_cond_t all_boarded;
     int waiting_students;
     int free_seats;
+    int boarded_students;
     int ticket_counter;
     int boarding_turn;
 };
@@ -16,8 +18,10 @@ station_init(struct station *station)
     pthread_mutex_init(&station->mutex, NULL);
     pthread_cond_init(&station->bus_arrived, NULL);
     pthread_cond_init(&station->student_boarded, NULL);
+    pthread_cond_init(&station->all_boarded, NULL);
     station->waiting_students = 0;
     station->free_seats = 0;
+    station->boarded_students = 0;
     station->ticket_counter = 0;
     station->boarding_turn = 0;
 }
@@ -27,17 +31,15 @@ station_load_bus(struct station *station, int count)
 {
     pthread_mutex_lock(&station->mutex);
     station->free_seats = count;
+    station->boarded_students = 0;
 
-    if (station->waiting_students > 0) {
-        pthread_cond_broadcast(&station->bus_arrived);
-
-        while (station->free_seats > 0 && station->waiting_students > 0) {
-            pthread_cond_wait(&station->student_boarded, &station->mutex);
-        }
+    while (station->free_seats > 0 && station->waiting_students > 0) {
+        pthread_cond_signal(&station->bus_arrived); // changed from broadcast to signal
+        pthread_cond_wait(&station->student_boarded, &station->mutex);
     }
 
     station->free_seats = 0;
-    pthread_cond_broadcast(&station->bus_arrived); // Added this line to signal students to stop waiting
+    pthread_cond_broadcast(&station->all_boarded); // added this line
     pthread_mutex_unlock(&station->mutex);
 }
 
@@ -53,10 +55,9 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
 
     station->boarding_turn++;
     station->waiting_students--;
-    station->free_seats--;
 
-    pthread_cond_signal(&station->student_boarded);
     pthread_mutex_unlock(&station->mutex);
 
     return station->boarding_turn;
+
 }
