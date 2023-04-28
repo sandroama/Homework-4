@@ -31,22 +31,20 @@ station_load_bus(struct station *station, int count)
 {
     pthread_mutex_lock(&station->mutex);
     station->free_seats = count;
+    station->boarded_students = 0;
 
-    if (station->waiting_students > 0 && station->free_seats > 0) {
+    if (station->waiting_students > 0) {
         pthread_cond_broadcast(&station->bus_arrived);
+
+        while (station->free_seats > 0 && station->waiting_students > 0) {
+            pthread_cond_wait(&station->student_boarded, &station->mutex);
+        }
     }
 
-    while (station->waiting_students > 0 && station->free_seats > 0) {
-        pthread_cond_wait(&station->student_boarded, &station->mutex);
-        station->free_seats--;
-        station->waiting_students--;
-    }
-
-    station->free_seats = 0;
     pthread_cond_broadcast(&station->all_boarded);
+    station->free_seats = 0;
     pthread_mutex_unlock(&station->mutex);
 }
-
 
 int
 station_wait_for_bus(struct station *station, int myticket, int myid)
@@ -55,10 +53,6 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
     station->waiting_students++;
 
     while (myticket != station->boarding_turn + 1 || station->free_seats <= 0) {
-        if (station->free_seats <= 0) {
-            pthread_mutex_unlock(&station->mutex);
-            return 0;
-        }
         pthread_cond_wait(&station->bus_arrived, &station->mutex);
     }
 
@@ -67,44 +61,13 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
     station->free_seats--;
     station->boarded_students++;
 
-    printf("student %d with ticket %d has boarded, the turn is %d\n", myid, myticket, station->boarding_turn);
-
     pthread_cond_signal(&station->student_boarded);
-    
+
     if (station->free_seats == 0 || station->waiting_students == 0) {
-        pthread_cond_broadcast(&station->all_boarded); // added this line
+        pthread_cond_broadcast(&station->all_boarded);
     }
-    
+
     pthread_mutex_unlock(&station->mutex);
 
     return station->boarding_turn;
 }
-
-
-// int
-// station_wait_for_bus(struct station *station, int myticket, int myid)
-// {
-//     pthread_mutex_lock(&station->mutex);
-//     station->waiting_students++;
-
-//     while (myticket != station->boarding_turn + 1 || station->free_seats <= 0) {
-//         pthread_cond_wait(&station->bus_arrived, &station->mutex);
-//     }
-
-//     station->boarding_turn++;
-//     station->waiting_students--;
-//     station->free_seats--;
-//     station->boarded_students++;
-
-//     printf("student %d with ticket %d has boarded, the turn is %d\n", myid, myticket, station->boarding_turn);
-
-//     pthread_cond_signal(&station->student_boarded);
-    
-//     if (station->free_seats == 0 || station->waiting_students == 0) {
-//         pthread_cond_broadcast(&station->all_boarded); // added this line
-//     }
-    
-//     pthread_mutex_unlock(&station->mutex);
-
-//     return station->boarding_turn;
-// }
