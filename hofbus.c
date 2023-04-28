@@ -41,6 +41,7 @@ station_load_bus(struct station *station, int count)
     station->free_seats = 0;                               // Reset the free_seats counter
     pthread_cond_broadcast(&station->all_boarded);         // Signal all students that the bus is full or everyone has boarded
     pthread_mutex_unlock(&station->mutex);                 // Unlock the mutex
+    return;
 }
 
 int
