@@ -53,7 +53,7 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
         pthread_cond_wait(&station->bus_arrived, &station->mutex);
     }
 
-    station->boarding_turn++; // Fix: Increment the boarding_turn counter
+    station->boarding_turn=myid; // ----------
     station->waiting_students--;
     station->free_seats--;
     station->boarded_students++;
@@ -66,5 +66,5 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
 
     pthread_mutex_unlock(&station->mutex);
 
-    return myticket; // Fix: Return the student's ticket number
+    return myticket; 
 }
