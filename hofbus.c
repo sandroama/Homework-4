@@ -37,6 +37,7 @@ station_load_bus(struct station *station, int count)
     }
 
     station->free_seats = 0;
+    pthread_cond_broadcast(&station->bus_arrived); // Added this line to signal students to stop waiting
     pthread_mutex_unlock(&station->mutex);
 }
 
