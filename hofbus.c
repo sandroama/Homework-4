@@ -73,7 +73,7 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
     if (station->free_seats == 0 || station->waiting_students == 0) {
         pthread_cond_broadcast(&station->all_boarded); // added this line
     }
-    
+
     pthread_mutex_unlock(&station->mutex);
 
     return station->boarding_turn;
