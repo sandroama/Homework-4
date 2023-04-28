@@ -56,8 +56,32 @@ station_wait_for_bus(struct station *station, int myticket, int myid)
 
     station->boarding_turn++;                              // Increment the boarding_turn counter
     station->waiting_students--;                           // Decrement the waiting_students counter
+    station->free_seats--;                                 // Decrement the free_seats counter
+    station->boarded_students++;                           // Increment the boarded_students counter
+
+    pthread_cond_signal(&station->student_boarded);        // Signal that the student has boarded
 
     pthread_mutex_unlock(&station->mutex);                 // Unlock the mutex
 
     return station->boarding_turn;                         // Return the student's boarding turn
 }
+
+
+// int
+// station_wait_for_bus(struct station *station, int myticket, int myid)
+// {
+//     pthread_mutex_lock(&station->mutex);                   // Lock the mutex
+//     station->waiting_students++;                           // Increment the waiting_students counter
+
+//     // Wait for the bus to arrive and for it to be the student's turn to board
+//     while (myticket != station->boarding_turn + 1 || station->free_seats <= 0) {
+//         pthread_cond_wait(&station->bus_arrived, &station->mutex); // Wait for the bus to arrive
+//     }
+
+//     station->boarding_turn++;                              // Increment the boarding_turn counter
+//     station->waiting_students--;                           // Decrement the waiting_students counter
+
+//     pthread_mutex_unlock(&station->mutex);                 // Unlock the mutex
+
+//     return station->boarding_turn;                         // Return the student's boarding turn
+// }
