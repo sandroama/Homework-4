@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 // Struct to store station information
-typedef struct {
+struct station {
     pthread_mutex_t lock;               // Mutex lock to protect critical sections
     pthread_cond_t busArrived;          // Condition variable to signal when a bus arrives
     pthread_cond_t passengerBoarded;    // Condition variable to signal when a passenger has boarded the bus
@@ -12,7 +12,7 @@ typedef struct {
     int nextTicket;                     // Ticket number for the next passenger to board
     int ticketCounter;                  // Ticket counter for assigning ticket numbers to new passengers
 
-} Station;
+};
 
 // Initialize station object
 void station_init(Station *station) {
