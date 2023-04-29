@@ -9,6 +9,8 @@ typedef struct {
     pthread_cond_t passengerBoarded;    // Condition variable to signal when a passenger has boarded the bus
     int availableSeats;                 // Number of available seats on the bus
     int waitingPassengers;              // Number of passengers waiting at the station
+    int nextTicket;                     // Ticket number for the next passenger to board
+    int ticketCounter;                  // Ticket counter for assigning ticket numbers to new passengers
 
 } Station;
 
