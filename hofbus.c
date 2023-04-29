@@ -2,67 +2,66 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Struct to store station information
 struct station {
-    pthread_mutex_t lock;               // Mutex lock to protect critical sections
-    pthread_cond_t busArrived;          // Condition variable to signal when a bus arrives
-    pthread_cond_t passengerBoarded;    // Condition variable to signal when a passenger has boarded the bus
-    int availableSeats;                 // Number of available seats on the bus
-    int waitingPassengers;              // Number of passengers waiting at the station
-    int nextTicket;                     // Ticket number for the next passenger to board
-    int ticketCounter;                  // Ticket counter for assigning ticket numbers to new passengers
-
+    pthread_mutex_t lock;
+    pthread_cond_t bus_arrived;
+    pthread_cond_t student_boarded;
+    int free_seats;
+    int waiting_students;
+    int next_ticket;
+    int ticket_counter;
 };
 
-// Initialize station object
-void station_init(Station *station) {
-    pthread_mutex_init(&station->lock, NULL);
-    pthread_cond_init(&station->busArrived, NULL);
-    pthread_cond_init(&station->passengerBoarded, NULL);
-    station->availableSeats = 0;
-    station->waitingPassengers = 0;
-    station->nextTicket = 1;
-    station->ticketCounter = 1;
+void station_init(struct station *station) {
+  station->free_seats = 0;
+  station->waiting_students = 0;
+  station->next_ticket = 1;
+  station->ticket_counter = 1;
+  pthread_mutex_init(&station->lock, NULL);
+  pthread_cond_init(&station->bus_arrived, NULL);
+  pthread_cond_init(&station->student_boarded, NULL);
 }
 
-// Load bus with passengers
-void station_load_bus(Station *station, int seatCount) {
-    pthread_mutex_lock(&station->lock);                       // Lock the mutex
+void station_load_bus(struct station *station, int count) {
+  pthread_mutex_lock(&station->lock);
 
-    // If there are no waiting passengers or seats available, return
-    if (station->waitingPassengers == 0 || seatCount == 0) {
-        pthread_mutex_unlock(&station->lock);
-        return;
-    }
+  // If there are no waiting students or the bus has no free seats, the bus leaves
+  if (station->waiting_students == 0 || count == 0) {
+    pthread_mutex_unlock(&station->lock);
+    return;
+  }
 
-    station->availableSeats = seatCount;                      // Set the number of available seats on the bus
-    pthread_cond_broadcast(&station->busArrived);             // Signal all waiting passengers that the bus has arrived
+  // Update the number of free seats and notify the waiting students
+  station->free_seats = count;
+  pthread_cond_broadcast(&station->bus_arrived);
 
-    // Wait until all available seats are filled or no waiting passengers remain
-    while (station->availableSeats > 0 && station->waitingPassengers > 0) {
-        pthread_cond_wait(&station->passengerBoarded, &station->lock); // Wait for a passenger to board the bus
-    }
+  // Wait until all free seats are taken or all waiting students have boarded
+  while (station->free_seats > 0 && station->waiting_students > 0) {
+    pthread_cond_wait(&station->student_boarded, &station->lock);
+  }
 
-    station->availableSeats = 0;                              // Reset the number of available seats to 0
-    pthread_mutex_unlock(&station->lock);                     // Unlock the mutex
+  // Reset the number of free seats and allow the bus to leave
+  station->free_seats = 0;
+  pthread_mutex_unlock(&station->lock);
 }
 
-// Passenger waits for the bus and returns their ticket number
-int station_wait_for_bus(Station *station, int passengerTicket, int passengerId) {
-    pthread_mutex_lock(&station->lock);                       // Lock the mutex
-    station->waitingPassengers++;                             // Increment the number of waiting passengers
+int station_wait_for_bus(struct station *station, int myticket, int myid) {
+  pthread_mutex_lock(&station->lock);
+  station->waiting_students++;
 
-    // Wait until it's the passenger's turn and there are available seats
-    while (passengerTicket != station->nextTicket || station->availableSeats == 0) {
-        pthread_cond_wait(&station->busArrived, &station->lock); // Wait for the bus to arrive
-    }
+  // Wait until the bus arrives and it's the student's turn to board
+  while (myticket != station->next_ticket || station->free_seats == 0) {
+    pthread_cond_wait(&station->bus_arrived, &station->lock);
+  }
 
-    station->waitingPassengers--;                             // Decrement the number of waiting passengers
-    station->nextTicket++;                                    // Increment the nextTicket counter
-    station->availableSeats--;                                // Decrement the number of available seats
+  // Board the bus and update the station state
+  station->waiting_students--;
+  station->next_ticket++;
+  station->free_seats--;
 
-    pthread_cond_signal(&station->passengerBoarded);          // Signal that the passenger has boarded the bus
-    pthread_mutex_unlock(&station->lock);                     // Unlock the mutex
+  // Notify the bus that a student has boarded
+  pthread_cond_signal(&station->student_boarded);
+  pthread_mutex_unlock(&station->lock);
 
-    return passengerTicket;
+  return (myticket);
 }
