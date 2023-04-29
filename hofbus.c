@@ -15,7 +15,7 @@ typedef struct {
 } Station;
 
 // Initialize station object
-void stationInit(Station *station) {
+void station_init(Station *station) {
     pthread_mutex_init(&station->lock, NULL);
     pthread_cond_init(&station->busArrived, NULL);
     pthread_cond_init(&station->passengerBoarded, NULL);
@@ -26,7 +26,7 @@ void stationInit(Station *station) {
 }
 
 // Load bus with passengers
-void stationLoadBus(Station *station, int seatCount) {
+void station_load_bus(Station *station, int seatCount) {
     pthread_mutex_lock(&station->lock);                       // Lock the mutex
 
     // If there are no waiting passengers or seats available, return
@@ -48,7 +48,7 @@ void stationLoadBus(Station *station, int seatCount) {
 }
 
 // Passenger waits for the bus and returns their ticket number
-int stationWaitForBus(Station *station, int passengerTicket, int passengerId) {
+int station_wait_for_bus(Station *station, int passengerTicket, int passengerId) {
     pthread_mutex_lock(&station->lock);                       // Lock the mutex
     station->waitingPassengers++;                             // Increment the number of waiting passengers
 
@@ -64,5 +64,5 @@ int stationWaitForBus(Station *station, int passengerTicket, int passengerId) {
     pthread_cond_signal(&station->passengerBoarded);          // Signal that the passenger has boarded the bus
     pthread_mutex_unlock(&station->lock);                     // Unlock the mutex
 
-    returnpassengerTicket;
+    return passengerTicket;
 }
