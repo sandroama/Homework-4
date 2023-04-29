@@ -45,14 +45,19 @@ void station_load_bus(struct station *station, int count) {
   pthread_mutex_unlock(&station->lock);
 }
 
-
 int station_wait_for_bus(struct station *station, int myticket, int myid) {
   pthread_mutex_lock(&station->lock);
   station->waiting_students++;
 
   // Wait until the bus arrives and it's the student's turn to board
-  while (myticket != station->next_ticket || station->free_seats == 0) {
+  while (myticket != station->next_ticket || (station->free_seats == 0 && station->waiting_students > 0)) {
     pthread_cond_wait(&station->bus_arrived, &station->lock);
+  }
+
+  // If there are no free seats and no waiting students, exit the function
+  if (station->free_seats == 0 && station->waiting_students == 0) {
+    pthread_mutex_unlock(&station->lock);
+    return -1;
   }
 
   // Board the bus and update the station state
@@ -61,7 +66,7 @@ int station_wait_for_bus(struct station *station, int myticket, int myid) {
   station->free_seats--;
 
   // Notify the bus that a student has boarded
-  pthread_cond_broadcast(&station->student_boarded); // <-- Change this line
+  pthread_cond_signal(&station->student_boarded);
   pthread_mutex_unlock(&station->lock);
 
   return (myticket);
