@@ -45,6 +45,7 @@ void station_load_bus(struct station *station, int count) {
   pthread_mutex_unlock(&station->lock);
 }
 
+
 int station_wait_for_bus(struct station *station, int myticket, int myid) {
   pthread_mutex_lock(&station->lock);
   station->waiting_students++;
@@ -60,7 +61,7 @@ int station_wait_for_bus(struct station *station, int myticket, int myid) {
   station->free_seats--;
 
   // Notify the bus that a student has boarded
-  pthread_cond_signal(&station->student_boarded);
+  pthread_cond_broadcast(&station->student_boarded); // <-- Change this line
   pthread_mutex_unlock(&station->lock);
 
   return (myticket);
