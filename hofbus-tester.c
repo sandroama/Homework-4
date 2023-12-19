@@ -1,5 +1,3 @@
-// Author: Jianchen Shan 
-// Please report bugs to Jianchen.Shan@hofstra.edu
 
 #include <stdio.h>
 #include <stdlib.h>
